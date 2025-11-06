@@ -1,0 +1,42 @@
+- name: Configuracion inicial para todos los servidores
+  hosts: all_servers # Se ejecutará en los servidores definidos en el grupo [all_servers]
+  become: true # Permite la ejecución con privilegios de root (sudo)
+
+  vars_files:
+    - vars/secret.yml
+
+  tasks:
+    # Tarea 1: Instalar un paquete (ej. 'nginx' para el web server)
+    - name: Instalar Nginx
+      ansible.builtin.package:
+        name: nginx
+        state: present
+      # Aplicar solo al grupo 'web_servers'
+      when: inventory_hostname in groups['web_servers']
+      # Usamos 'ansible.builtin.package' para ser explícitos.
+      # state: present asegura que el paquete esté instalado.
+
+    # Tarea 2: Asegurar que el servicio esté corriendo
+    - name: Iniciar y habilitar el servicio Nginx
+      ansible.builtin.service:
+        name: nginx
+        state: started
+        enabled: true
+      when: inventory_hostname in groups['web_servers']
+
+    # Tarea 3: Crear un usuario
+    - name: Crear usuario 'desarrollador' con bash como shell
+      ansible.builtin.user:
+        name: desarrollador
+        shell: /bin/bash
+        state: present
+        # state: present asegura la idempotencia (si existe, no hace nada)
+
+    # Tarea 4: Gestionar un archivo (ej. Asegurar que un archivo de logs exista)
+    - name: Crear archivo de bienvenida
+      ansible.builtin.file:
+        path: /etc/motd_ansible
+        state: touch # Asegura que el archivo exista
+        owner: root
+        group: root
+        mode: '0644'
